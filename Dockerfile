@@ -1,23 +1,43 @@
-# از تصویر رسمی Node.js استفاده می‌کنیم
-FROM node:20-alpine
+# ---------- Stage 1: Build ----------
+FROM node:20-alpine AS builder
 
-# دایرکتوری کار را ایجاد می‌کنیم
+# محیط کار
 WORKDIR /app
 
-# ابتدا package.json و package-lock.json را کپی می‌کنیم
+# npm mirror برای ایران
+RUN npm config set registry https://registry.npmmirror.com
+
+# کپی package.json و package-lock.json
 COPY package*.json ./
 
-# وابستگی‌ها را نصب می‌کنیم
-RUN npm ci --only=production
+# نصب همه وابستگی‌ها (dev + prod)
+RUN npm ci --fetch-timeout=60000 --fetch-retries=5
 
-# بقیه فایل‌های پروژه را کپی می‌کنیم
+# کپی کل پروژه
 COPY . .
 
-# برنامه را build می‌کنیم
+# ساخت پروژه
 RUN npm run build
 
-# پورت مورد نظر
+# ---------- Stage 2: Production ----------
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# npm mirror برای production هم
+RUN npm config set registry https://registry.npmmirror.com
+
+# فقط وابستگی‌های production نصب میشن
+COPY package*.json ./
+RUN npm ci --only=production
+
+# کپی خروجی build از مرحله قبل
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+
+# پورت
 EXPOSE 3000
 
-# دستور اجرای برنامه
+# اجرای اپلیکیشن
 CMD ["npm", "start"]
