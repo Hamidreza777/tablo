@@ -1,22 +1,21 @@
-# ---------- Stage 1: Build ----------
+# ---------- Stage 1: Builder ----------
 FROM node:20-alpine AS builder
 
-# محیط کار
 WORKDIR /app
 
-# npm mirror برای ایران
+# استفاده از mirror برای ایران
 RUN npm config set registry https://registry.npmmirror.com
 
-# کپی package.json و package-lock.json
+# فقط package.json و package-lock.json
 COPY package*.json ./
 
-# نصب همه وابستگی‌ها (dev + prod)
+# نصب تمام وابستگی‌ها (dev + prod)
 RUN npm ci --fetch-timeout=60000 --fetch-retries=5
 
-# کپی کل پروژه
+# کپی پروژه
 COPY . .
 
-# ساخت پروژه
+# Build پروژه Next.js
 RUN npm run build
 
 # ---------- Stage 2: Production ----------
@@ -24,14 +23,14 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# npm mirror برای production هم
+# استفاده از mirror
 RUN npm config set registry https://registry.npmmirror.com
 
-# فقط وابستگی‌های production نصب میشن
+# فقط prod dependencies نصب میشن
 COPY package*.json ./
 RUN npm ci --only=production
 
-# کپی خروجی build از مرحله قبل
+# کپی خروجی build از مرحله builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
