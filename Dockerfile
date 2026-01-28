@@ -1,5 +1,5 @@
 # از تصویر رسمی Node.js استفاده می‌کنیم
-FROM node:18-alpine
+FROM node:20-alpine
 
 # دایرکتوری کار را ایجاد می‌کنیم
 WORKDIR /app
